@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Tiruchirappalli City Transit Portal</title>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --surface: #1e293b;
+      --surface-light: #334155;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #0284c7;
+      --primary-hover: #0369a1;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --driver-color: #f97316;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    body {
+      background: radial-gradient(circle at 50% 20%, #1e293b 0%, #0b1120 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .auth-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 480px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+    .auth-header {
+      padding: 2rem 2rem 1.25rem 2rem;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: #0f172a;
+    }
+    .brand-icon {
+      font-size: 2.25rem;
+      display: inline-block;
+      margin-bottom: 0.5rem;
+    }
+    .auth-header h1 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: #fff;
+    }
+    .auth-header p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+    }
+
+    /* Role Selection Tabs */
+    .role-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: #111827;
+      border-bottom: 1px solid var(--border);
+    }
+    .role-tab-btn {
+      padding: 1rem;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+    }
+    .role-tab-btn:hover {
+      color: #fff;
+    }
+    .role-tab-btn.active-passenger {
+      color: #38bdf8;
+      border-bottom-color: #38bdf8;
+      background: rgba(2, 132, 199, 0.08);
+    }
+    .role-tab-btn.active-driver {
+      color: #fb923c;
+      border-bottom-color: #fb923c;
+      background: rgba(249, 115, 22, 0.08);
+    }
+
+    .auth-body {
+      padding: 2rem;
+    }
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+    label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.45rem;
+    }
+    input {
+      width: 100%;
+      background: #0b1120;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.8rem 1rem;
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus {
+      border-color: var(--primary);
+    }
+    .btn {
+      width: 100%;
+      padding: 0.9rem;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+    }
+    .btn-passenger {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-passenger:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+    .btn-driver {
+      background: var(--driver-color);
+      color: #fff;
+    }
+    .btn-driver:hover {
+      background: #ea580c;
+      transform: translateY(-1px);
+    }
+
+    .demo-section {
+      margin-top: 1.75rem;
+      padding-top: 1.25rem;
+      border-top: 1px dashed rgba(255, 255, 255, 0.1);
+    }
+    .demo-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 0.75rem;
+      text-align: center;
+    }
+    .demo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    .demo-pill {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.65rem 0.75rem;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s;
+    }
+    .demo-pill:hover {
+      background: rgba(255, 255, 255, 0.09);
+      border-color: #38bdf8;
+      transform: translateY(-1px);
+    }
+    .demo-pill.driver-pill:hover {
+      border-color: #fb923c;
+    }
+    .demo-pill-name {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .demo-pill-sub {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .error-box {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid #ef4444;
+      color: #fca5a5;
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    .location-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: rgba(16, 185, 129, 0.12);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 0.25rem 0.65rem;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="auth-card">
+    <!-- Header -->
+    <div class="auth-header">
+      <div class="brand-icon">🚆</div>
+      <h1>TIRUCHIRAPPALLI CITY TRANSIT</h1>
+      <p>Day Pass Management & Live Fleet Tracking System</p>
+      <div>
+        <span class="location-badge">📍 Tiruchirappalli (Trichy), Tamil Nadu</span>
+      </div>
+    </div>
+
+    <!-- Role Switch Tabs -->
+    <div class="role-tabs">
+      <button class="role-tab-btn active-passenger" id="tabPassengerBtn" onclick="selectRole('PASSENGER')">
+        <span>🎫</span> Passenger Portal
+      </button>
+      <button class="role-tab-btn" id="tabDriverBtn" onclick="selectRole('DRIVER')">
+        <span>👨‍✈️</span> Bus Driver Cockpit
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="auth-body">
+      <div id="errorBox" class="error-box"></div>
+
+      <!-- PASSENGER FORM -->
+      <form id="authForm" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label id="idLabel">Passenger ID or Email</label>
+          <input type="text" id="identifierInput" placeholder="e.g. P001234" value="P001234" required>
+        </div>
+
+        <div class="form-group">
+          <label id="pwdLabel">Account Password</label>
+          <input type="password" id="passwordInput" placeholder="Enter password (default: pass123)" value="pass123">
+        </div>
+
+        <button type="submit" class="btn btn-passenger" id="submitBtn">
+          <span>🚀</span> Enter Commuter Dashboard
+        </button>
+      </form>
+
+      <!-- 1-Click Fast Demos -->
+      <div class="demo-section">
+        <div class="demo-title" id="demoTitle">Fast 1-Click Passenger Login</div>
+        
+        <!-- Passenger Demo Pills -->
+        <div class="demo-grid" id="passengerDemoGrid">
+          <div class="demo-pill" onclick="quickFill('P001234', 'pass123', 'PASSENGER')">
+            <div class="demo-pill-name">John Doe</div>
+            <div class="demo-pill-sub">ID: P001234 &bull; Active Pass</div>
+          </div>
+          <div class="demo-pill" onclick="quickFill('P004321', 'pass123', 'PASSENGER')">
+            <div class="demo-pill-name">Sarah Connor</div>
+            <div class="demo-pill-sub">ID: P004321 &bull; Weekend Pass</div>
+          </div>
+        </div>
+
+        <!-- Driver Demo Pills -->
+        <div class="demo-grid" id="driverDemoGrid" style="display: none;">
+          <div class="demo-pill driver-pill" onclick="quickFill('DRV-101', 'drv123', 'DRIVER')">
+            <div class="demo-pill-name">R. Murugan</div>
+            <div class="demo-pill-sub">Central Depot &bull; Route 101</div>
+          </div>
+          <div class="demo-pill driver-pill" onclick="quickFill('DRV-204', 'drv123', 'DRIVER')">
+            <div class="demo-pill-name">S. Karthik</div>
+            <div class="demo-pill-sub">Chathiram &bull; Route 204</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let activeRole = 'PASSENGER';
+
+    function selectRole(role) {
+      activeRole = role;
+      const passengerBtn = document.getElementById('tabPassengerBtn');
+      const driverBtn = document.getElementById('tabDriverBtn');
+      const submitBtn = document.getElementById('submitBtn');
+      const idLabel = document.getElementById('idLabel');
+      const identifierInput = document.getElementById('identifierInput');
+      const passwordInput = document.getElementById('passwordInput');
+      const demoTitle = document.getElementById('demoTitle');
+      const passengerGrid = document.getElementById('passengerDemoGrid');
+      const driverGrid = document.getElementById('driverDemoGrid');
+
+      if (role === 'PASSENGER') {
+        passengerBtn.className = 'role-tab-btn active-passenger';
+        driverBtn.className = 'role-tab-btn';
+        submitBtn.className = 'btn btn-passenger';
+        submitBtn.innerHTML = '<span>🚀</span> Enter Commuter Dashboard';
+        idLabel.textContent = 'Passenger ID or Email';
+        identifierInput.value = 'P001234';
+        identifierInput.placeholder = 'e.g. P001234';
+        passwordInput.value = 'pass123';
+        demoTitle.textContent = 'Fast 1-Click Passenger Login';
+        passengerGrid.style.display = 'grid';
+        driverGrid.style.display = 'none';
+      } else {
+        passengerBtn.className = 'role-tab-btn';
+        driverBtn.className = 'role-tab-btn active-driver';
+        submitBtn.className = 'btn btn-driver';
+        submitBtn.innerHTML = '<span>📡</span> Launch Mobile Driver Cockpit';
+        idLabel.textContent = 'Driver Staff ID / Depot Code';
+        identifierInput.value = 'DRV-101';
+        identifierInput.placeholder = 'e.g. DRV-101';
+        passwordInput.value = 'drv123';
+        demoTitle.textContent = 'Fast 1-Click Driver Login';
+        passengerGrid.style.display = 'none';
+        driverGrid.style.display = 'grid';
+      }
+    }
+
+    function quickFill(id, pwd, role) {
+      selectRole(role);
+      document.getElementById('identifierInput').value = id;
+      document.getElementById('passwordInput').value = pwd;
+      handleLogin(new Event('submit'));
+    }
+
+    async function handleLogin(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      const errBox = document.getElementById('errorBox');
+      errBox.style.display = 'none';
+
+      const identifier = document.getElementById('identifierInput').value.trim();
+      const password = document.getElementById('passwordInput').value.trim();
+
+      if (!identifier) {
+        errBox.textContent = 'Please enter your ID.';
+        errBox.style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            identifier: identifier,
+            password: password,
+            role: activeRole
+          })
+        });
+
+        const data = await res.json();
+        if (data.ok) {
+          if (activeRole === 'DRIVER') {
+            window.location.href = '/driver';
+          } else {
+            window.location.href = '/';
+          }
+        } else {
+          errBox.textContent = data.error || 'Authentication error. Please try again.';
+          errBox.style.display = 'block';
+        }
+      } catch (err) {
+        errBox.textContent = 'Server connection error: ' + err.message;
+        errBox.style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>

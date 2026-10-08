@@ -1,0 +1,1950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Day Pass Transportation Portal</title>
+  <!-- Leaflet CSS & JS for Interactive Map Tracking -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.marker.slideto@0.2.0/Leaflet.Marker.SlideTo.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-light: #334155;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #0284c7;
+      --primary-hover: #0369a1;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --info: #6366f1;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+    header { background: #0b1120; border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .brand { display: flex; align-items: center; gap: 0.75rem; }
+    .brand-icon { background: linear-gradient(135deg, var(--primary), #38bdf8); color: white; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: bold; }
+    .brand-title { font-size: 1.25rem; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+    .brand-sub { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+    .status-badge { display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(16, 185, 129, 0.15); color: var(--success); padding: 0.35rem 0.85rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 8px var(--success); }
+    
+    .nav-tabs {
+      background: #131c31;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      padding: 0 1.5rem;
+      overflow-x: auto;
+      gap: 0.25rem;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .nav-tabs::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
+    }
+    .tab-btn { background: none; border: none; color: var(--text-muted); padding: 0.9rem 1.1rem; font-size: 0.9rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; }
+    .tab-btn:hover { color: #fff; }
+    .tab-btn.active { color: #38bdf8; border-bottom-color: #38bdf8; }
+    
+    main { flex: 1; padding: 2rem; max-width: 1400px; width: 100%; margin: 0 auto; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.25s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Dashboard Cards */
+    .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 2rem; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; position: relative; overflow: hidden; }
+    .stat-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+    .card-blue::before { background: var(--primary); }
+    .card-green::before { background: var(--success); }
+    .card-purple::before { background: var(--info); }
+    .card-amber::before { background: var(--warning); }
+    .card-red::before { background: var(--danger); }
+    .stat-title { font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px; margin-bottom: 0.5rem; }
+    .stat-val { font-size: 2.25rem; font-weight: 800; color: #fff; }
+    .stat-desc { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem; }
+
+    /* Layout Columns */
+    .split-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 900px) { .split-2 { grid-template-columns: 1fr; } }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.75rem; }
+    .card-title { font-size: 1.15rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 0.5rem; }
+    
+    /* Forms */
+    .form-group { margin-bottom: 1.15rem; }
+    label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.4rem; }
+    input, select, textarea { width: 100%; background: #0b1120; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem 1rem; color: #fff; font-size: 0.95rem; outline: none; transition: border-color 0.2s; }
+    input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    
+    /* Buttons */
+    .btn { background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 0.75rem 1.25rem; font-size: 0.9rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s; text-decoration: none; }
+    .btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+    .btn-success { background: var(--success); }
+    .btn-success:hover { background: #059669; }
+    .btn-warning { background: var(--warning); color: #000; }
+    .btn-warning:hover { background: #d97706; }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: var(--surface-light); color: #fff; }
+    .btn-sm { padding: 0.4rem 0.75rem; font-size: 0.8rem; border-radius: 6px; }
+
+    /* Tables */
+    .table-container { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { background: #131c31; color: var(--text-muted); padding: 0.85rem 1rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+    td { padding: 0.9rem 1rem; font-size: 0.88rem; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+    
+    /* Badges */
+    .badge { display: inline-block; padding: 0.25rem 0.65rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+    .badge-active { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-expiring { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-expired { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .badge-cancelled { background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); }
+
+    /* Validation Result Card */
+    .val-banner { padding: 1.5rem; border-radius: 10px; margin-top: 1.25rem; display: none; }
+    .val-banner.valid { display: block; background: rgba(16, 185, 129, 0.15); border: 2px solid var(--success); }
+    .val-banner.invalid { display: block; background: rgba(239, 68, 68, 0.15); border: 2px solid var(--danger); }
+    .val-banner.expired { display: block; background: rgba(245, 158, 11, 0.15); border: 2px solid var(--warning); }
+    .val-header { font-size: 1.35rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; }
+    .val-details { margin-top: 0.75rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; font-size: 0.9rem; }
+
+    /* Pass Card Preview */
+    .pass-ticket { background: linear-gradient(135deg, #1e3a8a, #0f172a); border: 1px solid #3b82f6; border-radius: 12px; padding: 1.5rem; position: relative; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); }
+    .pass-ticket-top { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed rgba(255,255,255,0.2); padding-bottom: 1rem; margin-bottom: 1rem; }
+    .qr-container { display: flex; justify-content: center; margin: 1rem 0; }
+    .qr-container img { width: 180px; height: 180px; background: white; padding: 8px; border-radius: 8px; }
+
+    /* Alert Banner with Individual Delete */
+    .alert-item { background: rgba(255,255,255,0.03); border-left: 3px solid var(--primary); padding: 0.85rem 1rem; margin-bottom: 0.6rem; border-radius: 0 6px 6px 0; font-size: 0.88rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+    .alert-content { flex: 1; }
+    .alert-meta { font-size: 0.75rem; color: var(--text-muted); display: flex; justify-content: space-between; margin-bottom: 0.25rem; }
+
+    /* LIVE BUS TRACKING & LEAFLET MAP */
+    .transit-dual-grid {
+      display: grid;
+      grid-template-columns: 460px 1fr;
+      gap: 1.5rem;
+      align-items: stretch;
+      margin-top: 1rem;
+    }
+    @media (max-width: 1060px) {
+      .transit-dual-grid { grid-template-columns: 1fr; }
+    }
+
+    .transit-tracker-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tracker-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 1rem;
+    }
+
+    .tracker-header h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .delay-badge {
+      font-size: 0.78rem;
+      font-weight: 800;
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .delay-badge.delay-late {
+      background: rgba(245, 158, 11, 0.18);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+    }
+
+    .delay-badge.delay-ontime {
+      background: rgba(16, 185, 129, 0.18);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+    }
+
+    /* Vertical Stop Timeline */
+    .timeline {
+      position: relative;
+      margin: 20px 0;
+      padding-left: 36px;
+      border-left: 4px solid #334155; /* Unreached path */
+      flex: 1;
+    }
+
+    .timeline-progress-overlay {
+      position: absolute;
+      left: -4px;
+      top: 0;
+      width: 4px;
+      background: #10b981;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
+      transition: height 0.6s ease;
+      z-index: 1;
+    }
+
+    .timeline-stop {
+      position: relative;
+      margin-bottom: 24px;
+      color: #94a3b8;
+      transition: all 0.3s ease;
+      z-index: 2;
+    }
+
+    .timeline-stop:last-child {
+      margin-bottom: 4px;
+    }
+
+    .timeline-stop.passed {
+      color: #f8fafc;
+    }
+
+    .timeline-stop.current {
+      color: #fff;
+    }
+
+    /* Station dot */
+    .timeline-stop::before {
+      content: '';
+      position: absolute;
+      left: -43px;
+      top: 6px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #64748b;
+      border: 2px solid var(--surface);
+      transition: all 0.3s ease;
+      z-index: 3;
+    }
+
+    .timeline-stop.passed::before {
+      background: #10b981; /* Green for crossed stops */
+      box-shadow: 0 0 8px #10b981;
+    }
+
+    .timeline-stop.current::before {
+      background: #10b981;
+      width: 14px;
+      height: 14px;
+      left: -45px;
+      top: 4px;
+      box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.35), 0 0 14px #10b981;
+      animation: pulse-ring 2s infinite;
+    }
+
+    @keyframes pulse-ring {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7), 0 0 10px #10b981; }
+      70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0), 0 0 14px #10b981; }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0), 0 0 10px #10b981; }
+    }
+
+    /* The Live Bus Icon floating between stops */
+    .live-bus-indicator {
+      position: absolute;
+      left: -53px;
+      font-size: 1.35rem;
+      transition: top 0.5s ease-in-out;
+      z-index: 4;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.8));
+    }
+
+    .live-bus-indicator .bus-ping-label {
+      position: absolute;
+      left: 36px;
+      top: -2px;
+      background: rgba(16, 185, 129, 0.95);
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 4px;
+      white-space: nowrap;
+      pointer-events: none;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+
+    .stop-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.25s ease;
+    }
+
+    .timeline-stop.current .stop-card {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid #10b981;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15);
+    }
+
+    .stop-header-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .timeline-stop.current .stop-header-title {
+      color: #34d399;
+      font-size: 1.05rem;
+    }
+
+    .stop-sub-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .stop-times {
+      text-align: right;
+      font-family: monospace;
+      font-size: 0.85rem;
+    }
+
+    .stop-times .sched-time { color: #94a3b8; }
+    .stop-times .act-time { font-weight: 700; font-size: 0.8rem; }
+    .act-time.ontime { color: #34d399; }
+    .act-time.late { color: #fbbf24; }
+
+    /* Interactive Map Card */
+    .map-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #map {
+      width: 100%;
+      height: 480px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+    }
+
+    .map-telemetry-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    @media (max-width: 768px) {
+      .map-telemetry-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .mini-telem-pill {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.6rem 0.85rem;
+    }
+
+    .mini-telem-title {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .mini-telem-val {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #fff;
+      margin-top: 2px;
+    }
+
+    .bus-marker {
+      background: none;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.7));
+    }
+
+    .station-marker-circle {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #0284c7;
+      border: 3px solid #fff;
+      box-shadow: 0 0 6px rgba(0,0,0,0.6);
+    }
+    .station-marker-circle.passed {
+      background: #10b981;
+    }
+
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 1rem; }
+    .modal-overlay.active { display: flex; }
+    .modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 500px; padding: 1.5rem; position: relative; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">🚆</div>
+      <div>
+        <div class="brand-title">DAY PASS TRANSPORTATION PORTAL</div>
+        <div class="brand-sub">Tiruchirappalli City Transit &bull; Live Fleet &amp; Passenger Hub</div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+      <span class="status-badge"><span class="pulse-dot"></span> LIVE SYSTEM CONNECTED</span>
+      <span id="liveClock" style="font-size: 0.82rem; color: var(--text-muted); font-family: monospace;"></span>
+      <div style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 9999px; padding: 0.3rem 0.8rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem;">
+        <span>👤</span>
+        <span style="color: #fff; font-weight: 700;">{{ user.name if user else 'John Doe' }}</span>
+        <span style="color: #38bdf8; font-size: 0.72rem; text-transform: uppercase; font-weight: 800;">({{ user.role if user else 'PASSENGER' }})</span>
+      </div>
+      <a href="/driver" class="btn btn-outline btn-sm" style="color: #fb923c; border-color: rgba(249,115,22,0.4);" title="Open Mobile Driver Cockpit">👨‍✈️ Driver Cockpit</a>
+      <a href="/logout" class="btn btn-outline btn-sm" title="Log out or switch role">🚪 Logout</a>
+    </div>
+  </header>
+
+  <!-- Section Tabs -->
+  <nav class="nav-tabs">
+    <button class="tab-btn active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+    <button class="tab-btn" onclick="switchTab('bus-tracking')">🚌 Live Bus Tracking</button>
+    <button class="tab-btn" onclick="switchTab('passes')">🎫 Pass Management</button>
+    <button class="tab-btn" onclick="switchTab('validator')">🔍 QR Ticket Inspector</button>
+    <button class="tab-btn" onclick="switchTab('tracking')">📍 Passenger Tracking</button>
+    <button class="tab-btn" onclick="switchTab('expiry')">⏰ Expiry & Renewals</button>
+    <button class="tab-btn" onclick="switchTab('transactions')">📜 Audit Ledger</button>
+    <button class="tab-btn" onclick="switchTab('alerts')">🔔 Notifications & Alerts</button>
+    <button class="tab-btn" onclick="switchTab('diagnostics')">⚙️ System Diagnostics</button>
+  </nav>
+
+  <!-- Main Views Container -->
+  <main>
+
+    <!-- TAB 1: DASHBOARD -->
+    <section id="tab-dashboard" class="tab-content active">
+      <div class="grid-4">
+        <div class="stat-card card-blue">
+          <div class="stat-title">Active Passes</div>
+          <div class="stat-val" id="statActive">--</div>
+          <div class="stat-desc">Valid passes currently eligible for travel</div>
+        </div>
+        <div class="stat-card card-green">
+          <div class="stat-title">Today's Transactions</div>
+          <div class="stat-val" id="statTodayTx">--</div>
+          <div class="stat-desc">Journeys & operations processed today</div>
+        </div>
+        <div class="stat-card card-purple">
+          <div class="stat-title">QR Validations</div>
+          <div class="stat-val" id="statValidations">--</div>
+          <div class="stat-desc">Turnstile & conductor scans logged</div>
+        </div>
+        <div class="stat-card card-amber">
+          <div class="stat-title">Expiring Soon</div>
+          <div class="stat-val" id="statExpiring">--</div>
+          <div class="stat-desc">Passes reaching expiration within 24h</div>
+        </div>
+      </div>
+
+      <div class="split-2">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">⚡ Quick Operations</h3>
+          </div>
+          <p style="color: var(--text-muted); margin-bottom: 1.25rem; font-size: 0.9rem;">
+            Quickly trigger standard day-pass operations or verify transit tickets:
+          </p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <button class="btn btn-success" onclick="switchTab('bus-tracking')">🚌 Live Bus Tracking</button>
+            <button class="btn" onclick="switchTab('passes')">➕ Issue Day Pass</button>
+            <button class="btn btn-outline" onclick="quickValidateDemo()">🔍 Test Demo QR Scan</button>
+            <button class="btn btn-warning" onclick="switchTab('expiry')">🔄 Renew Expiring Pass</button>
+          </div>
+          
+          <div style="margin-top: 1.75rem;">
+            <div class="card-title" style="font-size: 1rem; margin-bottom: 0.75rem;">🎫 Pass Types Distribution</div>
+            <div id="passTypesContainer" style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <!-- Dynamic Pass Types -->
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🔔 Recent Activity Alerts</h3>
+            <button class="btn btn-outline btn-sm" onclick="markAllAlertsRead()">Mark All Read</button>
+          </div>
+          <div id="dashboardAlertsFeed">
+            <!-- Dynamic alerts -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: LIVE BUS TRACKING & LEAFLET MAP -->
+    <section id="tab-bus-tracking" class="tab-content">
+      <!-- Control Bar -->
+      <div class="card" style="margin-bottom: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.25rem;">🚌</span>
+              <h3 style="color: #fff; font-size: 1.15rem; margin: 0;">Live Bus Tracking</h3>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <label style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">Select Vehicle:</label>
+              <select id="liveBusSelector" style="width: 320px; padding: 0.45rem 0.75rem;" onchange="onBusSelectorChanged()">
+                <option value="BUS-101" selected>BUS-101 (Route 101: CBS ⟷ Chathiram)</option>
+                <option value="BUS-101A">BUS-101A (Route 101: CBS ⟷ Chathiram Express)</option>
+                <option value="BUS-204">BUS-204 (Route 204: CBS ⟷ Srirangam Rajagopuram)</option>
+                <option value="BUS-305">BUS-305 (Route 305: CBS ⟷ NIT Trichy / BHEL)</option>
+                <option value="BUS-402">BUS-402 (Route 402: Chathiram ⟷ Airport TRZ)</option>
+              </select>
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <button id="simToggleBtn" class="btn btn-outline btn-sm" onclick="toggleSimulation()">⏸️ Pause Clock Sync</button>
+            <button class="btn btn-outline btn-sm" onclick="advanceBus(-1)">⏪ Prev Stop</button>
+            <button class="btn btn-success btn-sm" onclick="advanceBus(1)">⏩ Next Stop</button>
+            <button class="btn btn-sm" style="background: #0284c7;" onclick="quickBoardBus()">🎟️ Board Bus with Day Pass</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dual Architecture: Linear Timeline + Interactive Map -->
+      <div class="transit-dual-grid">
+        <!-- 1. LINEAR STATION/STOP TIMELINE VIEW -->
+        <div class="transit-tracker-card">
+          <div class="tracker-header">
+            <div>
+              <div style="font-size: 0.72rem; color: #38bdf8; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 2px;">
+                TIRUCHIRAPPALLI STOP TIMELINE
+              </div>
+              <h3 id="trackerRouteTitle">Bus 101: Central Bus Stand ⟷ Chathiram</h3>
+            </div>
+            <span id="trackerDelayBadge" class="badge delay-badge delay-late">Late by 3 mins</span>
+          </div>
+
+          <div style="font-size: 0.78rem; color: var(--text-muted); display: flex; justify-content: space-between; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.35rem;">
+            <span>Station / Stop Progression</span>
+            <span>Sched / Actual</span>
+          </div>
+
+          <div class="timeline" id="busTimeline">
+            <div class="timeline-progress-overlay" id="timelineProgressBar" style="height: 0px;"></div>
+            <!-- Populated via JS -->
+          </div>
+
+          <div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06); font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+            <span>🟢 Reached / Passed</span>
+            <span>⚪ Scheduled</span>
+            <span>🛰️ Live Satellite / Clock</span>
+          </div>
+        </div>
+
+        <!-- 2. INTERACTIVE MAP VIEW (LEAFLET WITH SMOOTH MARKER ANIMATION) -->
+        <div class="map-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.1rem;">🗺️</span>
+              <strong style="color: #fff; font-size: 1rem;">Tiruchirappalli Interactive Live Fleet Map</strong>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span id="mapGpsStreamBadge" class="status-badge" style="font-size: 0.75rem; padding: 0.25rem 0.7rem;"><span class="pulse-dot"></span> ⏰ REAL-TIME CLOCK SYNC</span>
+              <button class="btn btn-outline btn-sm" onclick="recenterMap()" title="Fit Route to Map">🎯 Fit Route</button>
+            </div>
+          </div>
+
+          <!-- Leaflet Map Container -->
+          <div id="map"></div>
+
+          <!-- Real-Time Telemetry Data Strip -->
+          <div class="map-telemetry-grid">
+            <div class="mini-telem-pill">
+              <div class="mini-telem-title">Live Speed</div>
+              <div class="mini-telem-val" id="mapTelemSpeed">38 km/h</div>
+            </div>
+            <div class="mini-telem-pill">
+              <div class="mini-telem-title">Next Stop</div>
+              <div class="mini-telem-val" style="font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="mapTelemNextStop">Tech Hub</div>
+            </div>
+            <div class="mini-telem-pill">
+              <div class="mini-telem-title">Dist to Next</div>
+              <div class="mini-telem-val" id="mapTelemDist">2.1 km</div>
+            </div>
+            <div class="mini-telem-pill">
+              <div class="mini-telem-title">Next Stop ETA</div>
+              <div class="mini-telem-val" style="color: #38bdf8;" id="mapTelemEta">10:36 AM</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: PASS MANAGEMENT -->
+    <section id="tab-passes" class="tab-content">
+      <div class="split-2">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">➕ Issue New Transit Day Pass</h3>
+          </div>
+          <form id="createPassForm" onsubmit="handleCreatePass(event)">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Passenger Full Name *</label>
+                <input type="text" id="passName" placeholder="e.g. John Doe" required>
+              </div>
+              <div class="form-group">
+                <label>Passenger ID / National ID *</label>
+                <input type="text" id="passPid" placeholder="e.g. P001234" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Phone Number</label>
+                <input type="text" id="passPhone" placeholder="+1-555-0199">
+              </div>
+              <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="passEmail" placeholder="passenger@transit.org">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Pass Type *</label>
+                <select id="passType" required>
+                  <option value="Day Pass">Standard Day Pass ($5.00)</option>
+                  <option value="24-Hour Tourist Pass">24-Hour Tourist Pass ($12.00)</option>
+                  <option value="Student Transit Pass">Student Transit Pass ($3.00)</option>
+                  <option value="Senior Transit Pass">Senior Transit Pass ($2.50)</option>
+                  <option value="Weekend Pass">Weekend Pass ($8.00)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Expiry Date (YYYY-MM-DD) *</label>
+                <input type="date" id="passExpiry" required>
+              </div>
+            </div>
+            <button type="submit" class="btn" style="width: 100%; margin-top: 0.5rem;">
+              🎟️ Issue Pass & Generate Secure QR Code
+            </button>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🎟️ Digital Pass Preview</h3>
+          </div>
+          <div id="passPreviewPlaceholder" style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+            Create a new pass or click "View Pass" from the table below to preview the live digital transit pass and QR code.
+          </div>
+          <div id="passPreviewCard" class="pass-ticket" style="display: none;">
+            <div class="pass-ticket-top">
+              <div>
+                <div style="font-size: 0.75rem; color: #93c5fd; text-transform: uppercase;">TRANSIT AUTHORITY PASS</div>
+                <div id="prevPassType" style="font-size: 1.25rem; font-weight: bold; color: #fff;"></div>
+              </div>
+              <span id="prevStatusBadge" class="badge"></span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.85rem; margin-bottom: 0.5rem;">
+              <div><span style="color: #93c5fd;">Passenger:</span> <strong id="prevName"></strong></div>
+              <div><span style="color: #93c5fd;">Passenger ID:</span> <strong id="prevPid"></strong></div>
+              <div><span style="color: #93c5fd;">Pass ID:</span> <strong id="prevPassId"></strong></div>
+              <div><span style="color: #93c5fd;">Valid Through:</span> <strong id="prevExpiry"></strong></div>
+            </div>
+            <div class="qr-container">
+              <img id="prevQrImg" alt="Transit Pass QR Code">
+            </div>
+            <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.75rem;">
+              <a id="prevDownloadLink" class="btn btn-outline btn-sm" download>⬇️ Download QR Image</a>
+              <button class="btn btn-success btn-sm" onclick="sendPreviewToValidator()">🔍 Test in Validator</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">📋 Issued Passes Directory</h3>
+          <div style="display: flex; gap: 0.75rem;">
+            <input type="text" id="passSearchInput" placeholder="Search by name, pass ID..." style="width: 250px; padding: 0.4rem 0.75rem; font-size: 0.85rem;" oninput="loadPassesTable()">
+            <select id="passStatusFilter" style="width: 150px; padding: 0.4rem 0.75rem; font-size: 0.85rem;" onchange="loadPassesTable()">
+              <option value="">All Statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="EXPIRED">Expired</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Pass ID</th>
+                <th>Passenger</th>
+                <th>Pass Type</th>
+                <th>Issue Date</th>
+                <th>Expiry Date</th>
+                <th>Status</th>
+                <th>Days Left</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="passesTableBody">
+              <!-- Dynamic rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: QR VALIDATOR -->
+    <section id="tab-validator" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">🔍 Ticket Inspector & Turnstile Scanner</h3>
+          <div class="form-group" style="margin-bottom: 0; width: 220px;">
+            <select id="valLocation">
+              <option value="Main Gate Turnstile">Main Gate Turnstile</option>
+              <option value="Metro Central Terminal">Metro Central Terminal</option>
+              <option value="Bus #42 Front Gate">Bus #42 Front Gate</option>
+              <option value="North Light Rail Platform">North Light Rail Platform</option>
+              <option value="Ferry Terminal Pier 1">Ferry Terminal Pier 1</option>
+            </select>
+          </div>
+        </div>
+
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.25rem;">
+          Inspect and validate passenger QR codes against the database with cryptographic token verification and live expiry enforcement:
+        </p>
+
+        <div style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem;">
+          <button class="btn btn-outline" onclick="loadActiveDemoQr()">⚡ Load Active Demo QR</button>
+          <button class="btn btn-outline" onclick="loadExpiredDemoQr()">⚠️ Load Expired Demo QR</button>
+        </div>
+
+        <div class="form-group">
+          <label>QR Code Payload / Scanned String</label>
+          <textarea id="valPayload" rows="4" placeholder="PASS_ID=...&#10;PASSENGER_ID=...&#10;TOKEN=...&#10;EXPIRY=..." style="font-family: monospace; font-size: 0.85rem;"></textarea>
+        </div>
+
+        <button class="btn btn-success" style="padding: 0.85rem 1.75rem; font-size: 1rem;" onclick="performValidation()">
+          ⚡ VALIDATE PASS & CHECK ACCESS
+        </button>
+
+        <div id="valResultBanner" class="val-banner">
+          <div class="val-header" id="valResultTitle"></div>
+          <div class="val-details" id="valResultDetails"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: PASSENGER TRACKING -->
+    <section id="tab-tracking" class="tab-content">
+      <div class="split-2">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">📍 Record Passenger Transit Event</h3>
+          </div>
+          <form id="trackForm" onsubmit="handleTrackEvent(event)">
+            <div class="form-group">
+              <label>Pass ID *</label>
+              <input type="text" id="trackPassId" placeholder="e.g. DEMO-ACTIVE" required>
+            </div>
+            <div class="form-group">
+              <label>Transit Activity Event *</label>
+              <select id="trackEvent" required>
+                <option value="Entered Bus">Entered Bus</option>
+                <option value="Exited Bus">Exited Bus</option>
+                <option value="Entered Metro">Entered Metro</option>
+                <option value="Exited Metro">Exited Metro</option>
+                <option value="Boarded Light Rail">Boarded Light Rail</option>
+                <option value="Conductor Inspected Pass">Conductor Inspected Pass</option>
+                <option value="Gate Turnstile Tap">Gate Turnstile Tap</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Station / Stop Location *</label>
+              <input type="text" id="trackLocation" value="Metro Central Terminal" required>
+            </div>
+            <button type="submit" class="btn" style="width: 100%;">
+              📝 Record Transit Event
+            </button>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🕒 Recent Transit Events Log</h3>
+          </div>
+          <div class="table-container" style="max-height: 380px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Pass ID</th>
+                  <th>Activity</th>
+                  <th>Location</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="trackingTableBody">
+                <!-- Dynamic rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 6: EXPIRY & RENEWALS -->
+    <section id="tab-expiry" class="tab-content">
+      <div class="card" style="border-left: 4px solid var(--warning);">
+        <h3 style="color: var(--warning); font-size: 1.15rem; margin-bottom: 0.5rem;">⏰ Pass Lifecycle & Renewal Station</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">
+          Track passes approaching their expiration deadline. Select any pass to extend its validity or cancel invalid credentials.
+        </p>
+      </div>
+
+      <div class="split-2">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🔄 Extend Pass Validity</h3>
+          </div>
+          <form id="renewForm" onsubmit="handleRenewPass(event)">
+            <div class="form-group">
+              <label>Pass ID to Renew *</label>
+              <input type="text" id="renewPassId" placeholder="e.g. DEMO-SOON" required>
+            </div>
+            <div class="form-group">
+              <label>New Expiry Date (YYYY-MM-DD) *</label>
+              <input type="date" id="renewExpiry" required>
+            </div>
+            <div style="display: flex; gap: 0.75rem;">
+              <button type="submit" class="btn btn-success" style="flex: 1;">
+                🔄 Renew & Reactivate Pass
+              </button>
+              <button type="button" class="btn btn-danger" onclick="handleCancelPass()">
+                🚫 Cancel Pass
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">⏳ Passes By Expiration Timeline</h3>
+          </div>
+          <div class="table-container" style="max-height: 360px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Pass ID</th>
+                  <th>Passenger</th>
+                  <th>Expiry Date</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="expiryTableBody">
+                <!-- Dynamic rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 7: AUDIT LEDGER WITH PASS EXPIRY CHECK -->
+    <section id="tab-transactions" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">📜 System Audit & Transaction Ledger</h3>
+          <button class="btn btn-outline btn-sm" onclick="loadTransactions()">🔄 Refresh Ledger</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Timestamp</th>
+                <th>Pass ID</th>
+                <th>Passenger</th>
+                <th>Activity / Event</th>
+                <th>Location</th>
+                <th>Pass Expiry Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="transactionsTableBody">
+              <!-- Dynamic rows with pass expiry status -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 8: NOTIFICATIONS & ALERTS WITH INDIVIDUAL DELETE -->
+    <section id="tab-alerts" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">🔔 Notifications & Alert Center</h3>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-outline btn-sm" onclick="markAllAlertsRead()">Mark All Read</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteAllAlerts()">🗑️ Clear All Alerts</button>
+          </div>
+        </div>
+        <div id="fullAlertsList">
+          <!-- Dynamic alerts with individual delete button -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 9: SYSTEM DIAGNOSTICS -->
+    <section id="tab-diagnostics" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">⚙️ Local Infrastructure & Database Status</h3>
+        </div>
+        <div class="grid-4" id="diagnosticsCounts">
+          <!-- Dynamic counts -->
+        </div>
+        <div style="background: #0b1120; border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-top: 1rem;">
+          <h4 style="color: #38bdf8; margin-bottom: 0.5rem;">🔌 Available REST API Endpoints</h4>
+          <ul style="color: var(--text-muted); font-family: monospace; font-size: 0.85rem; line-height: 1.8; list-style-position: inside;">
+            <li><strong style="color: #34d399;">GET</strong> /api/buses - Active bus fleet with current stop locations</li>
+            <li><strong style="color: #34d399;">GET</strong> /api/buses/&lt;bus_id&gt;/timeline - Live stop progression (Green current, Red others)</li>
+            <li><strong style="color: #38bdf8;">POST</strong> /api/buses/&lt;bus_id&gt;/advance - Advance bus to next stop</li>
+            <li><strong style="color: #38bdf8;">POST</strong> /api/buses/telemetry - External hardware GPS telemetry ingestion</li>
+            <li><strong style="color: #ef4444;">DELETE</strong> /api/alerts/&lt;id&gt; - Delete individual notification</li>
+            <li><strong style="color: #34d399;">GET</strong> /api/transactions - Ledger with live pass expiry verification</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Pass Inspection Modal -->
+  <div id="passInspectModal" class="modal-overlay" onclick="closeInspectModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1rem;">
+        <h3 style="font-size: 1.15rem; color: #fff;">🔍 Pass Expiry Verification</h3>
+        <button onclick="closeInspectModal()" style="background: none; border: none; color: var(--text-muted); font-size: 1.25rem; cursor: pointer;">&times;</button>
+      </div>
+      <div id="passInspectContent">
+        <!-- Dynamic pass info -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Live Clock
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('liveClock').textContent = now.toUTCString().replace('GMT', 'UTC');
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Default Expiry (2 days from now)
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 2);
+    document.getElementById('passExpiry').value = futureDate.toISOString().split('T')[0];
+    document.getElementById('renewExpiry').value = futureDate.toISOString().split('T')[0];
+
+    // Tab Switching
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.textContent.toLowerCase().includes(tabId.substring(0, 4)));
+      if (activeBtn) activeBtn.classList.add('active');
+      const target = document.getElementById('tab-' + tabId);
+      if (target) target.classList.add('active');
+
+      if (tabId === 'dashboard') loadStats();
+      if (tabId === 'bus-tracking') loadBusTimeline();
+      if (tabId === 'passes') loadPassesTable();
+      if (tabId === 'tracking') loadTrackingTable();
+      if (tabId === 'expiry') loadExpiryTable();
+      if (tabId === 'transactions') loadTransactions();
+      if (tabId === 'alerts') loadAllAlerts();
+      if (tabId === 'diagnostics') loadDiagnostics();
+    }
+
+    // Status Badges
+    function getStatusBadge(status) {
+      if (status === 'ACTIVE') return `<span class="badge badge-active">Active</span>`;
+      if (status === 'EXPIRING SOON') return `<span class="badge badge-expiring">Expiring Soon</span>`;
+      if (status === 'EXPIRED') return `<span class="badge badge-expired">Expired</span>`;
+      return `<span class="badge badge-cancelled">${status}</span>`;
+    }
+
+    function getLedgerExpiryBadge(item) {
+      if (!item.pass_id) return '<span style="color: var(--text-muted); font-size: 0.8rem;">—</span>';
+      if (item.pass_validity === 'ACTIVE') {
+        return `<span class="badge badge-active">🟢 Active (${item.days_left}d left)</span>`;
+      } else if (item.pass_validity === 'EXPIRING SOON') {
+        return `<span class="badge badge-expiring">🟡 Expiring Soon (${item.days_left}d)</span>`;
+      } else if (item.pass_validity === 'EXPIRED') {
+        return `<span class="badge badge-expired">🔴 Expired (${item.expiry_date})</span>`;
+      } else if (item.pass_validity === 'CANCELLED') {
+        return `<span class="badge badge-cancelled">⚪ Cancelled</span>`;
+      }
+      return `<span class="badge badge-cancelled">${item.pass_validity || 'Unknown'}</span>`;
+    }
+
+    // ==========================================
+    // LIVE BUS TRACKING & LEAFLET MAP
+    // ==========================================
+    let leafletMap = null;
+    let busMarker = null;
+    let routePolyline = null;
+    let stationMarkersLayer = null;
+    let activeTrackedBusId = null;
+    let lastRenderedRouteId = null;
+    let isSimActive = true;
+
+    function initOrUpdateMap(initialLat = 10.7956, initialLng = 78.6856) {
+      if (typeof L === 'undefined') {
+        return;
+      }
+      const mapContainer = document.getElementById('map');
+      if (!mapContainer) return;
+
+      if (!leafletMap) {
+        leafletMap = L.map('map', {
+          zoomControl: true,
+          scrollWheelZoom: true
+        }).setView([initialLat, initialLng], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(leafletMap);
+
+        stationMarkersLayer = L.layerGroup().addTo(leafletMap);
+
+        const busIcon = L.divIcon({
+          html: '<span class="bus-marker-icon" style="font-size: 26px; display: inline-block;">🚌</span>',
+          className: 'bus-marker',
+          iconSize: [32, 32],
+          iconAnchor: [16, 16]
+        });
+
+        busMarker = L.marker([initialLat, initialLng], {
+          icon: busIcon,
+          zIndexOffset: 1000
+        }).addTo(leafletMap);
+      }
+    }
+
+    function slideMarker(marker, targetLatLng, duration = 3000) {
+      if (!marker) return;
+      if (marker.slideTo) {
+        marker.slideTo(targetLatLng, { duration });
+        return;
+      }
+      const start = marker.getLatLng();
+      const startTime = performance.now();
+      function step(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(1, elapsed / duration);
+        const lat = start.lat + (targetLatLng[0] - start.lat) * progress;
+        const lng = start.lng + (targetLatLng[1] - start.lng) * progress;
+        marker.setLatLng([lat, lng]);
+        if (progress < 1) {
+          requestAnimationFrame(step);
+        }
+      }
+      requestAnimationFrame(step);
+    }
+
+    async function updateBusTracking() {
+      const selector = document.getElementById('liveBusSelector');
+      const busId = selector ? selector.value : 'BUS-101';
+      activeTrackedBusId = busId;
+
+      try {
+        const response = await fetch(`/api/bus-live/${busId}`);
+        const data = await response.json();
+        if (!data || data.error) return;
+
+        initOrUpdateMap(data.lat, data.lng);
+
+        // Update Satellite vs Clock Sync Status Badge
+        const streamBadge = document.getElementById('mapGpsStreamBadge');
+        if (streamBadge) {
+          if (data.is_live_driver) {
+            streamBadge.innerHTML = '<span class="pulse-dot" style="background:#10b981;"></span> 🟢 SATELLITE GPS BROADCAST (Phone Active)';
+            streamBadge.style.color = '#34d399';
+            streamBadge.style.background = 'rgba(16, 185, 129, 0.22)';
+            streamBadge.style.borderColor = 'rgba(16, 185, 129, 0.45)';
+          } else {
+            streamBadge.innerHTML = '<span class="pulse-dot" style="background:#38bdf8;"></span> ⏰ Real-Time Clock Sync (Trichy Timetable)';
+            streamBadge.style.color = '#38bdf8';
+            streamBadge.style.background = 'rgba(2, 132, 199, 0.15)';
+            streamBadge.style.borderColor = 'rgba(2, 132, 199, 0.35)';
+          }
+        }
+
+        // 1. Smoothly slide the marker to new coordinates over 3 seconds
+        if (busMarker) {
+          slideMarker(busMarker, [data.lat, data.lng], 3000);
+        }
+
+        // Draw / update route line and station markers on Leaflet map
+        if (leafletMap && data.stops && data.stops.length > 0) {
+          const routeKey = `${busId}-${data.stops.length}`;
+          if (lastRenderedRouteId !== routeKey) {
+            lastRenderedRouteId = routeKey;
+
+            // Update Polyline
+            const routeCoords = data.stops.map(s => [s.lat, s.lng]);
+            if (routePolyline) leafletMap.removeLayer(routePolyline);
+            routePolyline = L.polyline(routeCoords, {
+              color: '#38bdf8',
+              weight: 5,
+              opacity: 0.9,
+              lineCap: 'round',
+              lineJoin: 'round'
+            }).addTo(leafletMap);
+
+            // Update Station Markers
+            if (stationMarkersLayer) {
+              stationMarkersLayer.clearLayers();
+              data.stops.forEach((st, idx) => {
+                const isPassed = st.is_passed;
+                const isCurrent = st.is_current;
+                const circleIcon = L.divIcon({
+                  html: `<div class="station-marker-circle ${isPassed ? 'passed' : ''}" style="${isCurrent ? 'background: #10b981; transform: scale(1.3);' : ''}"></div>`,
+                  className: 'station-div-marker',
+                  iconSize: [16, 16],
+                  iconAnchor: [8, 8]
+                });
+                const sm = L.marker([st.lat, st.lng], { icon: circleIcon });
+                sm.bindPopup(`
+                  <div style="font-family: sans-serif; font-size: 0.85rem; color: #0f172a;">
+                    <strong style="color: #0284c7;">${st.name || st.stop_name}</strong><br>
+                    <span>Distance: ${st.km} km</span><br>
+                    <span>Scheduled: ${st.sched || st.scheduled_time}</span><br>
+                    <span>Status: <b>${st.status_text || (isPassed ? 'Passed' : isCurrent ? 'At Station' : 'Upcoming')}</b></span>
+                  </div>
+                `);
+                stationMarkersLayer.addLayer(sm);
+              });
+            }
+
+            // Fit map to route
+            try {
+              leafletMap.fitBounds(routePolyline.getBounds(), { padding: [35, 35] });
+            } catch(e) {}
+          }
+        }
+
+        // 2. Update Stop Timeline
+        updateTimelineUI(data);
+
+        // 3. Update telemetry UI pills
+        updateTelemetryUI(data);
+
+      } catch (err) {
+        console.error('Bus tracking update failed:', err);
+      }
+    }
+
+    function updateTimelineUI(data) {
+      // Header Route Title & Delay Badge
+      const titleEl = document.getElementById('trackerRouteTitle');
+      if (titleEl) {
+        titleEl.textContent = `Bus ${data.bus_id}: ${data.route_name}`;
+      }
+
+      const delayBadge = document.getElementById('trackerDelayBadge');
+      if (delayBadge) {
+        if (data.delay_minutes > 0) {
+          delayBadge.textContent = `Late by ${data.delay_minutes} mins`;
+          delayBadge.className = 'badge delay-badge delay-late';
+        } else {
+          delayBadge.textContent = 'On Time';
+          delayBadge.className = 'badge delay-badge delay-ontime';
+        }
+      }
+
+      // Populate Stop Timeline
+      const container = document.getElementById('busTimeline');
+      if (!container) return;
+
+      const stops = data.stops || [];
+      const totalStops = stops.length;
+      const currIdx = data.current_stop_index || 0;
+      const progress = typeof data.progress_ratio === 'number' ? data.progress_ratio : 0.45;
+
+      let html = '';
+
+      // Progress bar overlay (green line advancing)
+      const stopHeight = 85;
+      const totalHeight = Math.max(1, (totalStops - 1) * stopHeight);
+      const progressPx = Math.min(totalHeight, Math.max(0, (currIdx + progress) * stopHeight));
+      html += `<div class="timeline-progress-overlay" style="height: ${progressPx}px;"></div>`;
+
+      // Floating Live Bus Indicator
+      const busIndicatorTop = Math.max(0, (currIdx + progress) * stopHeight - 12);
+      html += `
+        <div class="live-bus-indicator" id="liveBusIndicator" style="top: ${busIndicatorTop}px;" title="Current Vehicle Position">
+          🚌
+          <span class="bus-ping-label">${data.bus_id} &bull; ${data.speed_kmh} km/h</span>
+        </div>
+      `;
+
+      // Render each stop on the timeline
+      stops.forEach((stop, i) => {
+        const isPassed = stop.is_passed;
+        const isCurrent = stop.is_current;
+        const stopClass = isCurrent ? 'timeline-stop current' : isPassed ? 'timeline-stop passed' : 'timeline-stop';
+
+        const sched = stop.sched || stop.scheduled_time || '10:00 AM';
+        const actual = stop.actual_time || (data.delay_minutes > 0 ? `${sched} (+${data.delay_minutes}m)` : sched);
+        const delayClass = data.delay_minutes > 0 ? 'late' : 'ontime';
+
+        html += `
+          <div class="${stopClass}" id="stop-node-${i}">
+            <div class="stop-card">
+              <div>
+                <div class="stop-header-title">
+                  ${stop.name || stop.stop_name}
+                </div>
+                <div class="stop-sub-meta">
+                  <span>${stop.platform || ('Bay ' + (i + 1))}</span> &bull; 
+                  <span>${stop.km} km</span> &bull;
+                  <span style="${isCurrent ? 'color: #34d399; font-weight: bold;' : ''}">
+                    ${isCurrent ? '🟢 Bus at Station' : isPassed ? '✓ Crossed' : 'Upcoming'}
+                  </span>
+                </div>
+              </div>
+              <div class="stop-times">
+                <div class="sched-time">${sched}</div>
+                <div class="act-time ${delayClass}">${actual}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function updateTelemetryUI(data) {
+      const spdEl = document.getElementById('mapTelemSpeed');
+      if (spdEl) spdEl.textContent = `${data.speed_kmh} km/h`;
+
+      const nextEl = document.getElementById('mapTelemNextStop');
+      if (nextEl) {
+        const stops = data.stops || [];
+        const nextIdx = (data.current_stop_index + 1) % stops.length;
+        const nextName = (stops[nextIdx] && (stops[nextIdx].name || stops[nextIdx].stop_name)) || data.next_stop_id || 'Terminal';
+        nextEl.textContent = nextName;
+      }
+
+      const distEl = document.getElementById('mapTelemDist');
+      if (distEl) distEl.textContent = `${data.distance_to_next_km} km`;
+
+      const etaEl = document.getElementById('mapTelemEta');
+      if (etaEl) etaEl.textContent = data.eta_next_stop || 'In 6 mins';
+    }
+
+    function recenterMap() {
+      if (leafletMap && routePolyline) {
+        try {
+          leafletMap.fitBounds(routePolyline.getBounds(), { padding: [35, 35] });
+        } catch (e) {}
+      }
+    }
+
+    function onBusSelectorChanged() {
+      lastRenderedRouteId = null;
+      updateBusTracking();
+    }
+
+    // Alias for existing callers & tests
+    async function loadBusTimeline() {
+      await updateBusTracking();
+      if (leafletMap) {
+        setTimeout(() => leafletMap.invalidateSize(), 100);
+      }
+    }
+
+    async function advanceBus(direction) {
+      const busId = document.getElementById('liveBusSelector').value;
+      try {
+        await fetch(`/api/buses/${busId}/advance`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ direction })
+        });
+        updateBusTracking();
+      } catch (err) {
+        console.error('Failed to advance bus:', err);
+      }
+    }
+
+    async function toggleSimulation() {
+      try {
+        const res = await fetch('/api/buses/simulation/toggle', { method: 'POST' });
+        const json = await res.json();
+        isSimActive = json.simulation_active;
+        document.getElementById('simToggleBtn').textContent = isSimActive ? '⏸️ Pause Auto-Move' : '▶️ Resume Auto-Move';
+      } catch (err) {
+        console.error('Failed to toggle simulation:', err);
+      }
+    }
+
+    async function quickBoardBus() {
+      const busId = document.getElementById('liveBusSelector').value;
+      const nextStopName = document.getElementById('mapTelemNextStop') ? document.getElementById('mapTelemNextStop').textContent : 'Central';
+      try {
+        const res = await fetch('/api/passes?status=ACTIVE');
+        const json = await res.json();
+        if (json.ok && json.data.length > 0) {
+          const pass = json.data[0];
+          await fetch('/api/track', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+              pass_id: pass.pass_id,
+              event: `Boarded Bus (${busId})`,
+              location: nextStopName
+            })
+          });
+          alert(`Success! Passenger ${pass.name} (${pass.pass_id}) boarded ${busId} at ${nextStopName}!`);
+          loadStats();
+        } else {
+          alert('No active day pass found. Please create one in Pass Management.');
+        }
+      } catch (err) {
+        alert('Boarding error: ' + err.message);
+      }
+    }
+
+    // Polling live telemetry every 4 seconds as requested in Step 3
+    setInterval(() => {
+      const busTab = document.getElementById('tab-bus-tracking');
+      if (busTab && busTab.classList.contains('active')) {
+        updateBusTracking();
+      }
+    }, 4000);
+
+    // ==========================================
+    // NOTIFICATIONS & ALERTS WITH INDIVIDUAL DELETE
+    // ==========================================
+    async function loadAllAlerts() {
+      try {
+        const res = await fetch('/api/alerts');
+        const json = await res.json();
+        if (json.ok) {
+          const container = document.getElementById('fullAlertsList');
+          container.innerHTML = '';
+          if (json.data.length === 0) {
+            container.innerHTML = '<div style="color: var(--text-muted); padding: 1.5rem; text-align: center;">No alerts or notifications. All clear!</div>';
+            return;
+          }
+          json.data.forEach(a => {
+            container.innerHTML += `
+              <div class="alert-item" id="alert-row-${a.id}" style="border-left-color: ${a.is_read ? 'var(--border)' : 'var(--primary)'}">
+                <div class="alert-content">
+                  <div class="alert-meta">
+                    <strong>${a.alert_type}</strong>
+                    <span>${a.created_at}</span>
+                  </div>
+                  <div>${a.message}</div>
+                </div>
+                <div>
+                  <button class="btn btn-danger btn-sm" onclick="deleteSingleAlert(${a.id})" title="Delete this notification">
+                    🗑️ Delete
+                  </button>
+                </div>
+              </div>
+            `;
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load alerts:', err);
+      }
+    }
+
+    async function deleteSingleAlert(alertId) {
+      try {
+        const res = await fetch(`/api/alerts/${alertId}`, { method: 'DELETE' });
+        const json = await res.json();
+        if (json.ok) {
+          const el = document.getElementById(`alert-row-${alertId}`);
+          if (el) {
+            el.style.opacity = '0';
+            el.style.transform = 'translateX(20px)';
+            el.style.transition = 'all 0.25s ease';
+            setTimeout(() => el.remove(), 250);
+          }
+          loadStats();
+        }
+      } catch (err) {
+        alert('Failed to delete alert: ' + err.message);
+      }
+    }
+
+    async function deleteAllAlerts() {
+      if (!confirm('Are you sure you want to delete all alerts?')) return;
+      try {
+        await fetch('/api/alerts/delete-all', { method: 'POST' });
+        loadAllAlerts();
+        loadStats();
+      } catch (err) {
+        alert('Failed to clear alerts: ' + err.message);
+      }
+    }
+
+    async function markAllAlertsRead() {
+      try {
+        await fetch('/api/alerts/mark-read', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mark_all: true })
+        });
+        loadStats();
+        loadAllAlerts();
+      } catch (err) {
+        console.error('Failed to mark alerts read:', err);
+      }
+    }
+
+    // ==========================================
+    // AUDIT LEDGER WITH LIVE PASS EXPIRY CHECK
+    // ==========================================
+    async function loadTransactions() {
+      try {
+        const res = await fetch('/api/transactions');
+        const json = await res.json();
+        if (json.ok) {
+          const tbody = document.getElementById('transactionsTableBody');
+          tbody.innerHTML = '';
+          json.data.forEach(t => {
+            tbody.innerHTML += `
+              <tr>
+                <td>#${t.id}</td>
+                <td>${t.timestamp.substring(0, 19)}</td>
+                <td><strong>${t.pass_id || '-'}</strong></td>
+                <td>${t.passenger_name || t.passenger_id || '-'}</td>
+                <td>${t.activity}</td>
+                <td>${t.location || 'N/A'}</td>
+                <td>${getLedgerExpiryBadge(t)}</td>
+                <td>
+                  ${t.pass_id ? `
+                    <button class="btn btn-outline btn-sm" onclick="inspectPassFromLedger('${t.pass_id}', ${t.id})">
+                      🔍 Check Pass
+                    </button>
+                  ` : '—'}
+                </td>
+              </tr>
+            `;
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load transactions:', err);
+      }
+    }
+
+    async function inspectPassFromLedger(passId, txId = null) {
+      try {
+        const res = await fetch(`/api/passes/${passId}`);
+        const json = await res.json();
+        if (json.ok) {
+          const p = json.data.pass;
+          const content = document.getElementById('passInspectContent');
+          content.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <span style="font-size: 1.1rem; font-weight: bold; color: #fff;">${p.pass_id}</span>
+              ${getStatusBadge(p.computed_status)}
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.9rem; margin-bottom: 1rem;">
+              <div><strong style="color: var(--text-muted);">Passenger:</strong><br>${p.name}</div>
+              <div><strong style="color: var(--text-muted);">Pass Type:</strong><br>${p.pass_type}</div>
+              <div><strong style="color: var(--text-muted);">Issue Date:</strong><br>${p.issue_date}</div>
+              <div><strong style="color: var(--text-muted);">Expiry Date:</strong><br>${p.expiry_date}</div>
+              <div><strong style="color: var(--text-muted);">Days Left:</strong><br>${p.days_left} days</div>
+              <div><strong style="color: var(--text-muted);">Status in DB:</strong><br>${p.status}</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 8px; font-size: 0.85rem; margin-bottom: 1rem;">
+              <strong>Validity Verdict:</strong>
+              ${p.computed_status === 'ACTIVE' 
+                ? '<span style="color: #34d399; font-weight: bold;"> Pass is Valid & Active for travel</span>'
+                : p.computed_status === 'EXPIRING SOON'
+                ? '<span style="color: #fbbf24; font-weight: bold;"> Pass expires within 24 hours</span>'
+                : '<span style="color: #f87171; font-weight: bold;"> Pass is Expired / Invalid for travel</span>'}
+            </div>
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
+              <button class="btn btn-outline btn-sm" onclick="closeInspectModal()">Close</button>
+              ${txId ? `
+                <button class="btn btn-danger btn-sm" onclick="deleteLedgerRow(${txId}); closeInspectModal();">
+                  🗑️ Delete Row
+                </button>
+              ` : ''}
+              <button class="btn btn-success btn-sm" onclick="selectForRenewal('${p.pass_id}', '${p.expiry_date}'); closeInspectModal();">Renew Pass</button>
+            </div>
+          `;
+          document.getElementById('passInspectModal').classList.add('active');
+        } else {
+          alert('Pass details not found.');
+        }
+      } catch (err) {
+        alert('Inspection error: ' + err.message);
+      }
+    }
+
+    async function deleteLedgerRow(txId) {
+      if (!confirm(`Are you sure you want to delete audit ledger row #${txId}?`)) return;
+      try {
+        const res = await fetch(`/api/transactions/${txId}`, { method: 'DELETE' });
+        const json = await res.json();
+        if (json.ok) {
+          loadTransactions();
+          loadStats();
+        } else {
+          alert('Failed to delete row: ' + (json.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Delete failed: ' + err.message);
+      }
+    }
+
+    function closeInspectModal(e) {
+      document.getElementById('passInspectModal').classList.remove('active');
+    }
+
+    // ==========================================
+    // OTHER SYSTEM OPERATIONS
+    // ==========================================
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/stats');
+        const json = await res.json();
+        if (json.ok) {
+          const d = json.data;
+          document.getElementById('statActive').textContent = d.active_passes;
+          document.getElementById('statTodayTx').textContent = d.today_transactions;
+          document.getElementById('statValidations').textContent = d.counts.qr_validations;
+          document.getElementById('statExpiring').textContent = d.expiring_passes;
+
+          const container = document.getElementById('passTypesContainer');
+          container.innerHTML = '';
+          for (const [ptype, count] of Object.entries(d.pass_types)) {
+            container.innerHTML += `
+              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.03); border-radius: 6px;">
+                <span>${ptype}</span>
+                <strong style="color: #38bdf8;">${count}</strong>
+              </div>
+            `;
+          }
+
+          const alertsFeed = document.getElementById('dashboardAlertsFeed');
+          alertsFeed.innerHTML = '';
+          if (d.recent_alerts && d.recent_alerts.length > 0) {
+            d.recent_alerts.forEach(a => {
+              alertsFeed.innerHTML += `
+                <div class="alert-item" id="dash-alert-${a.id}">
+                  <div class="alert-content">
+                    <div class="alert-meta">
+                      <strong>${a.alert_type}</strong>
+                      <span>${a.created_at.substring(0, 16)}</span>
+                    </div>
+                    <div>${a.message}</div>
+                  </div>
+                  <div>
+                    <button class="btn btn-danger btn-sm" onclick="deleteSingleAlert(${a.id})" title="Delete">🗑️</button>
+                  </div>
+                </div>
+              `;
+            });
+          } else {
+            alertsFeed.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem;">No recent alerts.</div>';
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load stats:', err);
+      }
+    }
+
+    async function loadPassesTable() {
+      try {
+        const query = document.getElementById('passSearchInput').value;
+        const status = document.getElementById('passStatusFilter').value;
+        let url = `/api/passes?`;
+        if (query) url += `q=${encodeURIComponent(query)}&`;
+        if (status) url += `status=${encodeURIComponent(status)}&`;
+        
+        const res = await fetch(url);
+        const json = await res.json();
+        if (json.ok) {
+          const tbody = document.getElementById('passesTableBody');
+          tbody.innerHTML = '';
+          json.data.forEach(p => {
+            tbody.innerHTML += `
+              <tr>
+                <td><strong>${p.pass_id}</strong></td>
+                <td>${p.name} <div style="font-size: 0.75rem; color: var(--text-muted);">${p.passenger_id}</div></td>
+                <td>${p.pass_type}</td>
+                <td>${p.issue_date}</td>
+                <td>${p.expiry_date}</td>
+                <td>${getStatusBadge(p.computed_status)}</td>
+                <td>${p.days_left}d</td>
+                <td>
+                  <div style="display: flex; gap: 0.4rem;">
+                    <button class="btn btn-outline btn-sm" onclick="showPassPreview('${p.pass_id}')">View Pass</button>
+                    <button class="btn btn-success btn-sm" onclick="selectForRenewal('${p.pass_id}', '${p.expiry_date}')">Renew</button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load passes:', err);
+      }
+    }
+
+    async function showPassPreview(passId) {
+      try {
+        const res = await fetch(`/api/passes/${passId}`);
+        const json = await res.json();
+        if (json.ok) {
+          const p = json.data.pass;
+          document.getElementById('passPreviewPlaceholder').style.display = 'none';
+          const card = document.getElementById('passPreviewCard');
+          card.style.display = 'block';
+
+          document.getElementById('prevPassType').textContent = p.pass_type;
+          document.getElementById('prevStatusBadge').className = 'badge ' + 
+            (p.computed_status === 'ACTIVE' ? 'badge-active' : p.computed_status === 'EXPIRING SOON' ? 'badge-expiring' : 'badge-expired');
+          document.getElementById('prevStatusBadge').textContent = p.computed_status;
+          document.getElementById('prevName').textContent = p.name;
+          document.getElementById('prevPid').textContent = p.passenger_id;
+          document.getElementById('prevPassId').textContent = p.pass_id;
+          document.getElementById('prevExpiry').textContent = p.expiry_date;
+          
+          const qrImg = document.getElementById('prevQrImg');
+          qrImg.src = p.qr_base64 || p.qr_image_url;
+
+          const dl = document.getElementById('prevDownloadLink');
+          dl.href = p.qr_image_url;
+          dl.download = `${p.pass_id}.png`;
+
+          card.dataset.payload = `PASS_ID=${p.pass_id}\nPASSENGER_ID=${p.passenger_id}\nTOKEN=${p.qr_token}\nEXPIRY=${p.expiry_date}`;
+        }
+      } catch (err) {
+        alert('Could not preview pass: ' + err.message);
+      }
+    }
+
+    function sendPreviewToValidator() {
+      const card = document.getElementById('passPreviewCard');
+      const payload = card.dataset.payload;
+      if (payload) {
+        document.getElementById('valPayload').value = payload;
+        switchTab('validator');
+      }
+    }
+
+    async function handleCreatePass(e) {
+      e.preventDefault();
+      const body = {
+        name: document.getElementById('passName').value,
+        passenger_id: document.getElementById('passPid').value,
+        phone: document.getElementById('passPhone').value,
+        email: document.getElementById('passEmail').value,
+        pass_type: document.getElementById('passType').value,
+        expiry: document.getElementById('passExpiry').value
+      };
+
+      try {
+        const res = await fetch('/api/passes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const json = await res.json();
+        if (json.ok) {
+          showPassPreview(json.data.pass_id);
+          loadPassesTable();
+          loadStats();
+          alert(`Pass ${json.data.pass_id} successfully created!`);
+        } else {
+          alert('Error: ' + json.error);
+        }
+      } catch (err) {
+        alert('Create failed: ' + err.message);
+      }
+    }
+
+    async function loadActiveDemoQr() {
+      try {
+        const res = await fetch('/api/passes?status=ACTIVE');
+        const json = await res.json();
+        if (json.ok && json.data.length > 0) {
+          const p = json.data[0];
+          document.getElementById('valPayload').value = `PASS_ID=${p.pass_id}\nPASSENGER_ID=${p.passenger_id}\nTOKEN=${p.qr_token}\nEXPIRY=${p.expiry_date}`;
+        } else {
+          alert('No active pass found in database.');
+        }
+      } catch (err) {
+        alert('Error loading demo QR: ' + err.message);
+      }
+    }
+
+    async function loadExpiredDemoQr() {
+      document.getElementById('valPayload').value = `PASS_ID=DEMO-EXPIRED\nPASSENGER_ID=P001234\nTOKEN=demo-expired\nEXPIRY=2024-01-01`;
+    }
+
+    async function performValidation() {
+      const payload = document.getElementById('valPayload').value.trim();
+      const location = document.getElementById('valLocation').value;
+      if (!payload) {
+        alert('Please enter or paste QR payload text.');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ payload, location })
+        });
+        const json = await res.json();
+        if (json.ok) {
+          const d = json.data;
+          const banner = document.getElementById('valResultBanner');
+          const title = document.getElementById('valResultTitle');
+          const details = document.getElementById('valResultDetails');
+
+          banner.className = 'val-banner ' + 
+            (d.result === 'VALID PASS' ? 'valid' : d.result === 'PASS EXPIRED' ? 'expired' : 'invalid');
+
+          title.innerHTML = (d.result === 'VALID PASS' ? '✅ ' : '❌ ') + d.result + ' &bull; ' + d.message;
+
+          const p = d.pass;
+          details.innerHTML = `
+            <div><strong>Location:</strong> ${d.location}</div>
+            <div><strong>Timestamp:</strong> ${d.timestamp}</div>
+            ${p ? `
+              <div><strong>Passenger:</strong> ${p.name}</div>
+              <div><strong>Pass ID:</strong> ${p.pass_id}</div>
+              <div><strong>Pass Type:</strong> ${p.pass_type}</div>
+              <div><strong>Expiry Date:</strong> ${p.expiry_date}</div>
+            ` : '<div>No pass record found</div>'}
+          `;
+          loadStats();
+        }
+      } catch (err) {
+        alert('Validation error: ' + err.message);
+      }
+    }
+
+    async function quickValidateDemo() {
+      switchTab('validator');
+      await loadActiveDemoQr();
+      await performValidation();
+    }
+
+    async function loadTrackingTable() {
+      try {
+        const res = await fetch('/api/tracking');
+        const json = await res.json();
+        if (json.ok) {
+          const tbody = document.getElementById('trackingTableBody');
+          tbody.innerHTML = '';
+          json.data.forEach(t => {
+            tbody.innerHTML += `
+              <tr>
+                <td>${t.timestamp.substring(11, 19)}</td>
+                <td><strong>${t.pass_id || 'N/A'}</strong></td>
+                <td>${t.event_type}</td>
+                <td>${t.location}</td>
+                <td><span class="badge badge-active">${t.status}</span></td>
+              </tr>
+            `;
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load tracking:', err);
+      }
+    }
+
+    async function handleTrackEvent(e) {
+      e.preventDefault();
+      const body = {
+        pass_id: document.getElementById('trackPassId').value.trim(),
+        event: document.getElementById('trackEvent').value,
+        location: document.getElementById('trackLocation').value.trim()
+      };
+      try {
+        const res = await fetch('/api/track', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const json = await res.json();
+        if (json.ok) {
+          alert('Event recorded successfully!');
+          loadTrackingTable();
+          loadStats();
+        } else {
+          alert('Error: ' + json.error);
+        }
+      } catch (err) {
+        alert('Tracking failed: ' + err.message);
+      }
+    }
+
+    async function loadExpiryTable() {
+      try {
+        const res = await fetch('/api/passes');
+        const json = await res.json();
+        if (json.ok) {
+          const tbody = document.getElementById('expiryTableBody');
+          tbody.innerHTML = '';
+          json.data.forEach(p => {
+            tbody.innerHTML += `
+              <tr>
+                <td><strong>${p.pass_id}</strong></td>
+                <td>${p.name}</td>
+                <td>${p.expiry_date}</td>
+                <td>${getStatusBadge(p.computed_status)}</td>
+                <td>
+                  <button class="btn btn-outline btn-sm" onclick="selectForRenewal('${p.pass_id}', '${p.expiry_date}')">Select</button>
+                </td>
+              </tr>
+            `;
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load expiry table:', err);
+      }
+    }
+
+    function selectForRenewal(passId, currentExpiry) {
+      switchTab('expiry');
+      document.getElementById('renewPassId').value = passId;
+      const d = new Date();
+      d.setDate(d.getDate() + 3);
+      document.getElementById('renewExpiry').value = d.toISOString().split('T')[0];
+    }
+
+    async function handleRenewPass(e) {
+      e.preventDefault();
+      const pid = document.getElementById('renewPassId').value.trim();
+      const expiry = document.getElementById('renewExpiry').value;
+      try {
+        const res = await fetch(`/api/passes/${pid}/renew`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ expiry })
+        });
+        const json = await res.json();
+        if (json.ok) {
+          alert(`Pass ${pid} renewed through ${expiry}!`);
+          loadExpiryTable();
+          loadStats();
+        } else {
+          alert('Renewal failed: ' + json.error);
+        }
+      } catch (err) {
+        alert('Renewal error: ' + err.message);
+      }
+    }
+
+    async function handleCancelPass() {
+      const pid = document.getElementById('renewPassId').value.trim();
+      if (!pid) {
+        alert('Enter a pass ID to cancel.');
+        return;
+      }
+      if (!confirm(`Are you sure you want to cancel pass ${pid}?`)) return;
+
+      try {
+        const res = await fetch(`/api/passes/${pid}/cancel`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: 'Admin deactivation' })
+        });
+        const json = await res.json();
+        if (json.ok) {
+          alert(`Pass ${pid} cancelled.`);
+          loadExpiryTable();
+          loadStats();
+        } else {
+          alert('Cancel error: ' + json.error);
+        }
+      } catch (err) {
+        alert('Cancel failed: ' + err.message);
+      }
+    }
+
+    async function loadDiagnostics() {
+      try {
+        const res = await fetch('/api/health');
+        const json = await res.json();
+        const container = document.getElementById('diagnosticsCounts');
+        container.innerHTML = '';
+        for (const [table, count] of Object.entries(json.tables)) {
+          container.innerHTML += `
+            <div class="stat-card card-purple">
+              <div class="stat-title">${table.replace('_', ' ')}</div>
+              <div class="stat-val">${count}</div>
+              <div class="stat-desc">SQLite Database Records</div>
+            </div>
+          `;
+        }
+      } catch (err) {
+        console.error('Failed to load diagnostics:', err);
+      }
+    }
+
+    // Initial Load
+    loadStats();
+  </script>
+</body>
+</html>
